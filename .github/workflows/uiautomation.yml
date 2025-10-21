@@ -1,0 +1,172 @@
+name: UI Automation Workflow
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  # Only block PRs on blocker-level test failures
+  BLOCK_SEVERITIES: blocker
+
+jobs:
+  ui-automation-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 22
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+          cache: maven
+
+      # --- Run UI Automation Tests ---
+      - name: Run UI Automation Tests
+        run: mvn -B clean test -DsuiteXmlFile=ui-testng.xml -Dallure.results.directory=target/allure-results
+
+      # --- Verify Allure results exist ---
+      - name: Verify Allure results exist
+        id: verify
+        run: |
+          RESULT_COUNT=$(find target/allure-results -type f -name "*.json" -not -path "*/history/*" 2>/dev/null | wc -l | tr -d ' ')
+          echo "count=$RESULT_COUNT" >> $GITHUB_OUTPUT
+          if [ "$RESULT_COUNT" -eq 0 ]; then
+            echo "::error::No Allure test results were produced."
+            exit 1
+          fi
+
+      # --- Pull previous reports to keep history ---
+      - name: Checkout gh-pages (if exists)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: ghp
+        continue-on-error: true
+
+      - name: Restore Allure history
+        run: |
+          mkdir -p target/allure-results/history
+          if [ -d "ghp/latest/history" ]; then
+            cp -r ghp/latest/history/* target/allure-results/history/ || true
+          fi
+
+      # --- Generate Allure Report ---
+      - name: Generate Allure Report
+        run: |
+          npm install -g allure-commandline --save-dev
+          allure generate target/allure-results -o target/allure-report --clean
+
+      - name: Upload Allure HTML (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/allure-report
+
+      - name: Upload Allure history (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: target/allure-report/history
+
+      # --- Compute archive folder name ---
+      - name: Compute archive directory
+        id: meta
+        run: |
+          TS=$(date -u +"%Y-%m-%d_%H-%M-%S")
+          SHORT_SHA=${GITHUB_SHA::7}
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REF="pr-${{ github.event.pull_request.number }}"
+          else
+            REF="${GITHUB_REF_NAME}"
+          fi
+          echo "dest_dir=${TS}_${REF}_${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      # --- Prepare gh-pages with timestamped + latest reports ---
+      - name: Prepare gh-pages content
+        run: |
+          mkdir -p ghp
+          DEST="${{ steps.meta.outputs.dest_dir }}"
+          mkdir -p "ghp/${DEST}"
+          rm -rf ghp/latest || true
+          mkdir -p ghp/latest
+
+          cp -r target/allure-report/* "ghp/${DEST}/"
+          cp -r target/allure-report/* "ghp/latest/"
+
+          # Index page to list all runs
+          {
+            echo "<!doctype html><meta charset='utf-8'><title>UI Automation Reports</title>"
+            echo "<h1>UI Automation Reports</h1>"
+            echo "<p><strong>Latest:</strong> <a href='./latest/'>Open</a></p><ul>"
+            find ghp -maxdepth 1 -type d -printf '%f\n' | grep -Ev '^\.$|^\.git$|^latest$' | sort -r | while read d; do
+              echo "<li><a href='./$d/'>$d</a></li>"
+            done
+            echo "</ul><p>Generated $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>"
+          } > ghp/index.html
+          echo > ghp/.nojekyll
+
+      # --- Publish to gh-pages ---
+      - name: Publish to gh-pages
+        if: steps.verify.outputs.count != '0'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ghp
+          keep_files: true
+          force_orphan: false
+
+      # --- Add link to workflow summary ---
+      - name: Post hosted link to Summary
+        run: |
+          REPO="${{ github.repository }}"
+          OWNER="${REPO%%/*}"
+          NAME="${REPO##*/}"
+          URL="https://${OWNER}.github.io/${NAME}/${{ steps.meta.outputs.dest_dir }}/"
+          {
+            echo "### Allure UI Report"
+            echo ""
+            echo "[Open report](${URL})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # --- Gate PRs on Blocker failures only ---
+      - name: Gate PR on Blocker failures
+        if: always()
+        run: |
+          sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y jq >/dev/null 2>&1 || true
+          jq -r --arg block "${BLOCK_SEVERITIES}" '
+            ( $block | ascii_downcase | split(",") ) as $sevlist
+            |
+            select(.status=="failed" or .status=="broken")
+            |
+            (.labels // [] | map(select(.name=="severity") | .value | ascii_downcase) | .[0] // "unknown") as $sev
+            |
+            select( ($sevlist | index($sev)) != null )
+            |
+            [ $sev, .status, (.name // .fullName // "unknown") ] | @tsv
+          ' target/allure-results/*.json 2>/dev/null | tee .blocked.tsv
+
+          BLOCK_COUNT=$(wc -l < .blocked.tsv | tr -d ' ')
+          {
+            echo ""
+            echo "### Blocker Test Failures"
+            echo "| Severity | Status | Test |"
+            echo "|---|---|---|"
+            if [ "$BLOCK_COUNT" -gt 0 ]; then
+              awk -F'\t' '{printf("| %s | %s | %s |\n",$1,$2,$3)}' .blocked.tsv
+            else
+              echo "| — | — | — |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$BLOCK_COUNT" -gt 0 ]; then
+            echo "::error::Blocker test failures detected ($BLOCK_COUNT). Blocking this PR."
+            exit 1
+          fi
