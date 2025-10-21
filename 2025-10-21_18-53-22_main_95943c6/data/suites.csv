@@ -1,0 +1,2 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","1607","Test: Login successfully using valid credentials and verify URL post-login","Regression_Suite","Tue Oct 21 18:52:35 UTC 2025","passed","Tue Oct 21 18:52:36 UTC 2025","Tests.DealerPlus.Login","Autochek_WebApp_Automation","Tests.DealerPlus.Login","VerifyLoginWithUrlValidation"
