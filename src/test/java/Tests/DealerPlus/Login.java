@@ -31,7 +31,7 @@ public class Login extends BaseClass {
         loginPage.EnterEmail(UserName);
         loginPage.EnterPassword(Password);
         loginPage.ClickOnLoginButton();
-        if (!loginPage.VerifySuccessfulLogin())
+        if (loginPage.VerifySuccessfulLogin())
             Assert.fail("Dashboard Landing failed!");
     }
 }
