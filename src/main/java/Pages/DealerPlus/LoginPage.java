@@ -18,7 +18,7 @@ public class LoginPage {
     }
 
     final By EmailField = By.xpath("//input[@type='email']");
-    final By PasswordField = By.xpath("//input[@type='password']");
+    final By PasswordField = By.xpath("//input[@type='password1']");
     final By LoginButton = By.xpath("//button//span[contains(text(),'Login')]");
 
     @Step("Entering email in email field")
