@@ -1,5 +1,6 @@
 package Base;
 
+import io.qameta.allure.Allure;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -9,27 +10,66 @@ import java.io.File;
 public class BaseClass {
     public static WebDriver driver;
 
-    protected String UserName = "suhail+1@frugaltestingin.com";
-    protected String Password = "Autochek@123";
+    protected String AccountManagerUserName = "sumasri@frugaltesting.com";
+    protected String AccountManagerPassword = "AutochekF123";
+    protected String FranchiseAdminUserName = "suhail@frugaltestingin.com";
+    protected String FranchiseAdminPassword = "Autochek@123";
     protected String URL = "https://dealerplus.staging.myautochek.com/auth/sign-in";
+    protected String MT940AdminUserName = "suhail+10@frugaltestingin.com";
+    protected String MT940AdminPassword = "Autochek@123";
+    protected String URLRetool = "https://autochek.retool.com/p/i-login/homepage?_environment=staging";
 
-    public void SetUp() {
-
+    // Generate a unique Chrome profile directory for each session
+    private ChromeOptions getChromeOptions() {
         ChromeOptions options = new ChromeOptions();
 
-        // Always use a unique temporary user data directory to avoid session conflicts
-        String userDataDir = System.getProperty("java.io.tmpdir") + File.separator + "chrome-profile-" + System.currentTimeMillis();
-        options.addArguments("--user-data-dir=" + userDataDir);
+        // Basic CI-safe flags
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
 
-        // Recommended flags for CI environments (like GitHub Actions)
-        options.addArguments("--headless=new");          // Run Chrome in headless mode
-        options.addArguments("--no-sandbox");            // Disable the sandbox for CI
-        options.addArguments("--disable-dev-shm-usage"); // Prevent /dev/shm issues
-        options.addArguments("--disable-gpu");           // Disable GPU acceleration
-        options.addArguments("--window-size=1920,1080"); // Ensure consistent viewport
+        // Run headless in GitHub Actions; comment this out if you want visible browser locally
+        if (System.getenv("GITHUB_ACTIONS") != null) {
+            options.addArguments("--headless=new");
+        }
 
-        driver = new ChromeDriver(options);
-        driver.manage().window().maximize();
+        // Create unique temp user-data-dir to avoid “already in use” errors
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        File uniqueProfile = new File(tmpDir, "chrome-profile-" + System.currentTimeMillis());
+        uniqueProfile.mkdirs();
+        options.addArguments("--user-data-dir=" + uniqueProfile.getAbsolutePath());
+
+        return options;
+    }
+
+    // Start browser (DealerPlus)
+    public void SetUp() {
+        if (driver == null) {
+            ChromeOptions options = getChromeOptions();
+            driver = new ChromeDriver(options);
+            driver.manage().window().maximize();
+        }
         driver.get(URL);
+    }
+
+    // Start browser (Retool)
+    public void SetUpRetool() {
+        if (driver == null) {
+            ChromeOptions options = getChromeOptions();
+            driver = new ChromeDriver(options);
+            driver.manage().window().maximize();
+        }
+        driver.get(URLRetool);
+    }
+
+    // Quit browser safely
+    public void TearDown() {
+        if (driver != null) {
+            try {
+                driver.quit();
+            } finally {
+                driver = null;
+            }
+        }
     }
 }
