@@ -23,17 +23,23 @@ public class BaseClass {
     private ChromeOptions getChromeOptions() {
         ChromeOptions options = new ChromeOptions();
 
-        // Basic CI-safe flags
+        // CI-safe flags
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--disable-gpu");
+        options.addArguments("--disable-infobars");
+        options.addArguments("--disable-notifications");
+        options.addArguments("--start-maximized");
 
-        // Run headless in GitHub Actions; comment this out if you want visible browser locally
+        // Force consistent screen size for headless mode
+        options.addArguments("--window-size=1920,1080");
+
+        // Enable headless in CI
         if (System.getenv("GITHUB_ACTIONS") != null) {
             options.addArguments("--headless=new");
         }
 
-        // Create unique temp user-data-dir to avoid “already in use” errors
+        // Unique user data dir
         String tmpDir = System.getProperty("java.io.tmpdir");
         File uniqueProfile = new File(tmpDir, "chrome-profile-" + System.currentTimeMillis());
         uniqueProfile.mkdirs();
