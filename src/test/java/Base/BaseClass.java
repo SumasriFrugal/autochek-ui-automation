@@ -1,7 +1,7 @@
 package Base;
 
 import io.qameta.allure.Allure;
-import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Dimension;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -24,23 +24,21 @@ public class BaseClass {
     private ChromeOptions getChromeOptions() {
         ChromeOptions options = new ChromeOptions();
 
-        // CI-safe flags
+        // Basic CI-safe flags
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--disable-gpu");
-        options.addArguments("--disable-infobars");
-        options.addArguments("--disable-notifications");
+        options.addArguments("--headless=new");
         options.addArguments("--window-size=1920,1080");
         options.addArguments("--force-device-scale-factor=1");
         options.addArguments("--high-dpi-support=1");
-        options.addArguments("--start-maximized");
 
-        // Run headless in CI
+        // Run headless in GitHub Actions; comment this out if you want visible browser locally
         if (System.getenv("GITHUB_ACTIONS") != null) {
             options.addArguments("--headless=new");
         }
 
-        // Unique profile
+        // Create unique temp user-data-dir to avoid “already in use” errors
         String tmpDir = System.getProperty("java.io.tmpdir");
         File uniqueProfile = new File(tmpDir, "chrome-profile-" + System.currentTimeMillis());
         uniqueProfile.mkdirs();
@@ -54,10 +52,10 @@ public class BaseClass {
         if (driver == null) {
             ChromeOptions options = getChromeOptions();
             driver = new ChromeDriver(options);
-            driver.manage().window().maximize();
+            driver.manage().window().setSize(new Dimension(1920, 1080));
+//            driver.manage().window().maximize();
         }
         driver.get(URL);
-//        ((JavascriptExecutor) driver).executeScript("document.body.style.zoom='100%';");
     }
 
     // Start browser (Retool)
@@ -65,10 +63,11 @@ public class BaseClass {
         if (driver == null) {
             ChromeOptions options = getChromeOptions();
             driver = new ChromeDriver(options);
-            driver.manage().window().maximize();
+            driver.manage().window().setSize(new Dimension(1920, 1080));
+
+//            driver.manage().window().maximize();
         }
         driver.get(URLRetool);
-//        ((JavascriptExecutor) driver).executeScript("document.body.style.zoom='100%';");
     }
 
     // Quit browser safely
