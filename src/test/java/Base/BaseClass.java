@@ -24,17 +24,23 @@ public class BaseClass {
     private ChromeOptions getChromeOptions() {
         ChromeOptions options = new ChromeOptions();
 
-        // Basic CI-safe flags
+        // CI-safe flags
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--disable-gpu");
+        options.addArguments("--disable-infobars");
+        options.addArguments("--disable-notifications");
+        options.addArguments("--window-size=1920,1080");
+        options.addArguments("--force-device-scale-factor=1");
+        options.addArguments("--high-dpi-support=1");
+        options.addArguments("--start-maximized");
 
-        // Run headless in GitHub Actions; comment this out if you want visible browser locally
+        // Run headless in CI
         if (System.getenv("GITHUB_ACTIONS") != null) {
             options.addArguments("--headless=new");
         }
 
-        // Create unique temp user-data-dir to avoid “already in use” errors
+        // Unique profile
         String tmpDir = System.getProperty("java.io.tmpdir");
         File uniqueProfile = new File(tmpDir, "chrome-profile-" + System.currentTimeMillis());
         uniqueProfile.mkdirs();
@@ -51,7 +57,7 @@ public class BaseClass {
             driver.manage().window().maximize();
         }
         driver.get(URL);
-        ((JavascriptExecutor) driver).executeScript("document.body.style.zoom='100%';");
+//        ((JavascriptExecutor) driver).executeScript("document.body.style.zoom='100%';");
     }
 
     // Start browser (Retool)
@@ -62,7 +68,7 @@ public class BaseClass {
             driver.manage().window().maximize();
         }
         driver.get(URLRetool);
-        ((JavascriptExecutor) driver).executeScript("document.body.style.zoom='100%';");
+//        ((JavascriptExecutor) driver).executeScript("document.body.style.zoom='100%';");
     }
 
     // Quit browser safely
