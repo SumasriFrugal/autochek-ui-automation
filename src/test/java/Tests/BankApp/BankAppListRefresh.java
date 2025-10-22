@@ -62,7 +62,7 @@ public class BankAppListRefresh extends BaseClass {
         String bankName       = "AutoTest Bank " + uniqueSuffix;
         String accountNumber  = "ACC" + uniqueSuffix;
         bankPage.addBank(bankName, accountNumber);
-        Assert.assertFalse(
+        Assert.assertTrue(
                 bankPage.verifyPopup(),
                 "New Bank is successfully Added"
         );

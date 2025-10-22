@@ -12,12 +12,12 @@
             <class name="Tests.BankApp.BankAppListRefresh">
                 <methods>
                     <include name="addBankAndVerifyInList"/>
-<!--                    <include name="deleteBankAndVerify"/>-->
-<!--                    <include name="addBank_InlineEditAndVerifyClosed"/>-->
-<!--                    <include name="invalidAccountNumber"/>-->
-<!--                    <include name="duplicateAccountNotAllowed"/>-->
-<!--                    <include name="inlineRollbackOnCancel"/>-->
-<!--                    <include name="hedgeRequiredFields"/>-->
+                    <include name="deleteBankAndVerify"/>
+                    <include name="addBank_InlineEditAndVerifyClosed"/>
+                    <include name="invalidAccountNumber"/>
+                    <include name="duplicateAccountNotAllowed"/>
+                    <include name="inlineRollbackOnCancel"/>
+                    <include name="hedgeRequiredFields"/>
                 </methods>
             </class>
         </classes>
