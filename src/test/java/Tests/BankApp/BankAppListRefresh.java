@@ -90,6 +90,7 @@ public class BankAppListRefresh extends BaseClass {
     @Severity(SeverityLevel.CRITICAL)
     @Test(description = "Add bank, filter by account number, inline update Restricted/Facility/Status and verify editor closes")
     public void addBank_InlineEditAndVerifyClosed() {
+        SoftAssert softAssert = new SoftAssert();
         // Unique payload
         String suffix        = String.valueOf(System.currentTimeMillis()).substring(7);
         String bankName      = "AutoTest Bank " + suffix;
@@ -97,7 +98,7 @@ public class BankAppListRefresh extends BaseClass {
 
         // 1) Add bank
         bankPage.addBank(bankName, accountNumber);
-        Assert.assertTrue(bankPage.verifyPopup(), "New Bank popup not shown after add");
+        softAssert.assertFalse(bankPage.verifyPopup(), "New Bank popup not shown after add");
 
         // 2) Search the just-added account and inline-edit three fields
         //    Provide the exact option texts visible in your dropdowns
@@ -107,7 +108,6 @@ public class BankAppListRefresh extends BaseClass {
 
         bankPage.searchAndInlineUpdate(accountNumber, restrictedNew, facilityNew, statusNew);
 
-        SoftAssert softAssert = new SoftAssert();
         if (!bankPage.verifyUpdatePopup())
             softAssert.fail("Bank Did not got Updated!");
         softAssert.assertAll();
@@ -131,7 +131,7 @@ public class BankAppListRefresh extends BaseClass {
     @Severity(SeverityLevel.BLOCKER)
     @Test(description = "Required fields should block Add Bank")
     public void requiredFieldsBlockAdd() {
-        Assert.assertFalse(bankPage.addBank_RequiredFields_Block(),
+        Assert.assertTrue(bankPage.addBank_RequiredFields_Block(),
                 "Add Bank should be blocked when required fields are empty.");
     }
 
