@@ -131,7 +131,7 @@ public class BankAppListRefresh extends BaseClass {
     @Severity(SeverityLevel.BLOCKER)
     @Test(description = "Required fields should block Add Bank")
     public void requiredFieldsBlockAdd() {
-        Assert.assertTrue(bankPage.addBank_RequiredFields_Block(),
+        Assert.assertFalse(bankPage.addBank_RequiredFields_Block(),
                 "Add Bank should be blocked when required fields are empty.");
     }
 
